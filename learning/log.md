@@ -2,7 +2,8 @@
 
 https://github.com/thiskevinwang/terraform-provider-pinecone/pull/1
 
-~ 1 hour, done at 12-1am
+10-04-2023 12am (start)
+10-04-2023 12-1am (stop; +1h; total elapsed 1h)
 
 ---
 
@@ -51,7 +52,7 @@ are needed.
 
 https://github.com/thiskevinwang/terraform-provider-pinecone/pull/2
 
-Start at 7am
+10-04-2023 7am (start)
 
 ---
 
@@ -145,4 +146,91 @@ Fix: import the newly created resource into provider.go > Resources()
 
 Run go install . and try again
 
-8:47am - take a break; 1.5 hours of work — https://x.com/thekevinwang/status/1709553196203434169?s=20
+https://x.com/thekevinwang/status/1709553196203434169?s=20
+
+10-04-2023 7am-8:47am (stop; +1.5hr of work; total elapsed 2.5h)
+
+10-04-2023 3:30pm (start) - early end to my last day at HashiCorp. Resume work on this provider.
+
+Run `terraform apply`
+
+│ Error: Value Conversion Error
+│
+│ with pinecone_index.my-first-index,
+│ An unexpected error was encountered trying to convert tftypes.Value into
+│ resources.indexResourceModel. This is always an error in the provider. Please
+│ report the following to the provider developer:
+│
+│ mismatch between struct and object: Struct defines fields not found in object:
+│ status and database. Object defines fields not found in struct: name.
+╵
+
+reference https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/main/internal/provider/example_resource.go#L35-L39
+
+```go
+type indexResourceModel struct {
+	Name types.String `tfsdk:"name"`
+}
+```
+
+│ Error: Missing Resource State After Create
+│
+│ with pinecone_index.my-first-index,
+│ on main.tf line 24, in resource "pinecone_index" "my-first-index":
+│ 24: resource "pinecone_index" "my-first-index" {
+│
+│ The Terraform Provider unexpectedly returned no resource state after having no
+│ errors in the resource creation. This is always an issue in the Terraform
+│ Provider and should be reported to the provider developers.
+│
+│ The resource may have been successfully created, but Terraform is not tracking
+│ it. Applying the configuration again with no other action may result in duplicate
+│ resource errors. Import the resource if the resource was actually created and
+│ Terraform should be tracking it.
+
+TF_LOG=trace terraform apply -var-file="../.tfvars"
+
+`tflog.Error(ctx, "reading a resource")` output looks like
+
+```
+2023-10-04T15:51:32.287-0400 [ERROR] provider.terraform-provider-pinecone: reading a resource: @module=pinecone tf_resource_type=pinecone_index tf_req_id=95b0918e-f096-338a-19ca-5c232de3ca63 tf_rpc=ReadResource @caller=/Users/kevin/repos/terraform-provider-pinecone/internal/resources/index.go:95 tf_provider_addr=thekevinwang.com/terraform-providers/pinecone timestamp=2023-10-04T15:51:32.287-0400
+```
+
+Here, the https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/c7f8b736aec6b14daac8533176931af51a0df22a/internal/provider/example_resource.go#L122 repo starts to fall short in code examples for resource `Read` and `Create` methods.
+
+... and https://github.com/hashicorp/terraform-provider-hashicups-pf/blob/c42733f24b8c4e0583d750e28c0490ad82a20972/internal/provider/order_resource.go#L205 is more helpful.
+
+I probably should've started with implementing a data_source instead since that is Read-only which is more simple.
+
+Fix dupe content here: https://developer.hashicorp.com/terraform/plugin/framework/migrating/attributes-blocks/default-values
+
+- needs to show import statement from
+  - "github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+  - "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+
+10-04-2023 3:30pm-4:34pm (stop; nap. +1hr; total elapsed 3.5h)
+
+10-04-2023 5:43pm (start)
+
+Play Dragonball Z on crunchyroll in the background
+
+blew away my statefile because I was getting errors
+about some value being null
+
+Now..
+
+│ Error: Value Conversion Error
+│
+│ with pinecone_index.my-first-index,
+│ on main.tf line 27, in resource "pinecone_index" "my-first-index":
+│ 27: metric = "cosine"
+│
+│ An unexpected error was encountered trying to convert tftypes.Value into
+│ basetypes.SetType. This is always an error in the provider. Please report
+│ the following to the provider developer:
+│
+│ cannot reflect tftypes.String into a struct, must be an object
+
+APPLY WORKS
+
+10-04-2023 5:43pm-7:23pm (stop; +1.5hr; total elapsed 5h)

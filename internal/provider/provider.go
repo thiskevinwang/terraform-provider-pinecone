@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	resources "github.com/thiskevinwang/terraform-provider-pinecone/internal/resources"
-	pinecone "github.com/thiskevinwang/terraform-provider-pinecone/internal/services"
+	services "github.com/thiskevinwang/terraform-provider-pinecone/internal/services"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -134,20 +134,19 @@ func (p *pineconeProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	ctx = tflog.SetField(ctx, "pinecone_api_key", apikey)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "pinecone_api_key")
-
 	ctx = tflog.SetField(ctx, "pinecone_environment", environment)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "pinecone_api_key")
 
 	tflog.Debug(ctx, "Creating client")
 
 	// TODO(kevinwang): create pinecone client?
-	client := pinecone.Pinecone{
+	client := services.Pinecone{
 		ApiKey:      apikey,
 		Environment: environment,
 	}
 
 	// TODO(kevinwang): Make the client available during DataSource and Resource type Configure methods.
-	// resp.DataSourceData = client
+	resp.DataSourceData = client
 	resp.ResourceData = client
 
 	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
