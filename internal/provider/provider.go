@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	resources "github.com/thiskevinwang/terraform-provider-pinecone/internal/resources"
+	pinecone "github.com/thiskevinwang/terraform-provider-pinecone/internal/services"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -113,7 +115,7 @@ func (p *pineconeProvider) Configure(ctx context.Context, req provider.Configure
 
 	if apikey == "" {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("host"),
+			path.Root("apikey"),
 			"Missing (ApiKey)",
 			"Detail (ApiKey)",
 		)
@@ -121,7 +123,7 @@ func (p *pineconeProvider) Configure(ctx context.Context, req provider.Configure
 
 	if environment == "" {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
+			path.Root("environment"),
 			"Missing (Environment)",
 			"Detail (Environment)",
 		)
@@ -139,12 +141,16 @@ func (p *pineconeProvider) Configure(ctx context.Context, req provider.Configure
 	tflog.Debug(ctx, "Creating client")
 
 	// TODO(kevinwang): create pinecone client?
+	client := pinecone.Pinecone{
+		ApiKey:      apikey,
+		Environment: environment,
+	}
 
 	// TODO(kevinwang): Make the client available during DataSource and Resource type Configure methods.
 	// resp.DataSourceData = client
-	// resp.ResourceData = client
+	resp.ResourceData = client
 
-	// tflog.Info(ctx, "Configured client", map[string]any{"success": true})
+	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
 }
 
 // DataSources defines the data sources implemented in the provider.
@@ -154,5 +160,7 @@ func (p *pineconeProvider) DataSources(_ context.Context) []func() datasource.Da
 
 // Resources defines the resources implemented in the provider.
 func (p *pineconeProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		resources.NewIndexResource,
+	}
 }

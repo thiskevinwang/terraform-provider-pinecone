@@ -1,0 +1,2 @@
+pinecone_api_key = "fixme"
+pinecone_environment = "us-west4-gcp-free"

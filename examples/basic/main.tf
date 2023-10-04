@@ -7,6 +7,4 @@ terraform {
 }
 
 provider "pinecone" {
-  apikey      = "1"
-  environment = "dev"
 }
