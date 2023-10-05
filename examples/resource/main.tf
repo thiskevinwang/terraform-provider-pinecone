@@ -4,7 +4,8 @@ provider "pinecone" {
 }
 
 resource "pinecone_index" "my-first-index" {
-  name      = "my-little-pony"
+  name      = "testidx"
   dimension = 1536
   metric    = "cosine"
+  pods      = 1
 }
