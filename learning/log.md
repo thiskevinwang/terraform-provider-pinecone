@@ -270,3 +270,5 @@ Ask developer AI
 Login to https://registry.terraform.io/publish/provider/github/thiskevinwang
 
 Visit https://developer.hashicorp.com/terraform/registry/providers/publishing
+
+10-05-2023 2:35pm Publishing...
