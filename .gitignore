@@ -6,3 +6,6 @@ terraform.tfstate.backup
 
 # Ignore goreleaser artifacts
 dist/*
+
+# Ignore go tools artifacts
+bin/*
