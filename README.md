@@ -21,6 +21,19 @@ cp .env.example .env
 go test -v ./...
 ```
 
+## Documenting
+
+This uses `./tools/tools.go` to in stall [`tfplugindocs`](github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs)
+
+```console
+export GOBIN=$PWD/bin
+export PATH=$GOBIN:$PATH
+go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+which tfplugindocs
+```
+
+Generate docs, and preview them at https://registry.terraform.io/tools/doc-preview
+
 ## Release
 
 https://developer.hashicorp.com/terraform/registry/providers/publishing#publishing-to-the-registry
