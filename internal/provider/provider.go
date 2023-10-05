@@ -53,14 +53,14 @@ func (p *pineconeProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 		Attributes: map[string]schema.Attribute{
 			"apikey": schema.StringAttribute{
 				Description: "...Or PINECONE_API_KEY",
-				Optional:    false,
-				Required:    true,
+				Optional:    true,
+				Required:    false,
 				Sensitive:   true,
 			},
 			"environment": schema.StringAttribute{
 				Description: "...Or PINECONE_ENVIRONMENT",
-				Optional:    false,
-				Required:    true,
+				Optional:    true,
+				Required:    false,
 			},
 		},
 	}

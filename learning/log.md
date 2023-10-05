@@ -247,4 +247,11 @@ Do some whimsical diagramming ... it helps alot
 
 Implemented update and destroy.
 
-Next: unit tests?
+Next: acceptance tests?
+
+10-05-2023 Flexible — I'm not going to track time anymore
+
+Started working on tests and new-to-me golang module/import/testing isms
+https://github.com/hashicorp/terraform-plugin-testing/issues/185
+
+10-05-2023 12:52pm Got a basic CREATE-DESTROY acceptance test working

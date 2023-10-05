@@ -14,6 +14,13 @@ terraform {
 provider "pinecone" {}
 ```
 
+## Testing
+
+```console
+cp .env.example .env
+go test -v ./...
+```
+
 ## Appendix
 
 - https://docs.pinecone.io/
