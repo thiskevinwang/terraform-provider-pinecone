@@ -45,6 +45,7 @@ type indexResourceModel struct {
 	Replicas  types.Int64  `tfsdk:"replicas"`
 	Pods      types.Int64  `tfsdk:"pods"`
 	// Shards    types.Number  `tfsdk:"shards"`
+	SourceCollection types.String `tfsdk:"source_collection"`
 }
 
 // Metadata returns the resource type name.
@@ -90,6 +91,10 @@ func (r *indexResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:    true,
 				Default:     int64default.StaticInt64(1),
 			},
+			"source_collection": schema.StringAttribute{
+				Description: "The name of the collection to create an index from",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -130,13 +135,16 @@ func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, 
 	name := plan.Name.ValueString()
 	dimension := plan.Dimension.ValueInt64()
 	metric := plan.Metric.ValueString()
+	sourceCollection := plan.SourceCollection.ValueString()
 
 	// Create new index
 	response, err := r.client.CreateIndex(services.CreateIndexBodyParams{
-		Name:      name,
-		Dimension: dimension,
-		Metric:    metric,
+		Name:             name,
+		Dimension:        dimension,
+		Metric:           metric,
+		SourceCollection: sourceCollection,
 	})
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to create index",

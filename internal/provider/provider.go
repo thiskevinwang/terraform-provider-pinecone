@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	datasources "github.com/thiskevinwang/terraform-provider-pinecone/internal/data-sources"
 	resources "github.com/thiskevinwang/terraform-provider-pinecone/internal/resources"
 	services "github.com/thiskevinwang/terraform-provider-pinecone/internal/services"
 )
@@ -154,7 +155,9 @@ func (p *pineconeProvider) Configure(ctx context.Context, req provider.Configure
 
 // DataSources defines the data sources implemented in the provider.
 func (p *pineconeProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		datasources.NewCollectionDataSource,
+	}
 }
 
 // Resources defines the resources implemented in the provider.
