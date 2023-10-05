@@ -50,18 +50,36 @@ func (p *pineconeProvider) Metadata(_ context.Context, _ provider.MetadataReques
 // Schema defines the provider-level schema for configuration data.
 func (p *pineconeProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Interact with Pinecone.io",
+		MarkdownDescription: `A Terraform provider for managing your [pinecone.io](https://www.pinecone.io/) infrastructure as code.
+		
+## Example Usage
+` + "```hcl" + `
+provider "pinecone" {}
+
+data "pinecone_collection" "existing-collection" {
+  name = "testindex"
+}
+
+resource "pinecone_index" "my-first-index" {
+  name   = "testidx"
+  metric = "cosine"
+  pods   = 1
+
+  source_collection = data.pinecone_collection.existing-collection.name
+  dimension = data.pinecone_collection.existing-collection.dimension
+}
+` + "```",
 		Attributes: map[string]schema.Attribute{
 			"apikey": schema.StringAttribute{
-				Description: "...Or PINECONE_API_KEY",
-				Optional:    true,
-				Required:    false,
-				Sensitive:   true,
+				MarkdownDescription: "Will use the `PINECONE_API_KEY` environment variable if not set.",
+				Optional:            true,
+				Required:            false,
+				Sensitive:           true,
 			},
 			"environment": schema.StringAttribute{
-				Description: "...Or PINECONE_ENVIRONMENT",
-				Optional:    true,
-				Required:    false,
+				MarkdownDescription: "Will use the `PINECONE_ENVIRONMENT` environment variable if not set.",
+				Optional:            true,
+				Required:            false,
 			},
 		},
 	}
