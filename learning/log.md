@@ -259,3 +259,14 @@ https://github.com/hashicorp/terraform-plugin-testing/issues/185
 10-05-2023 12:58pm Merged: https://github.com/thiskevinwang/terraform-provider-pinecone/pull/2
 
 Continue on to implement a `pinecone_collection` data-source
+
+10-05-2023 2:12pm Side quest fork in the road
+
+1. publish what I currently have to the registry
+2. generate docs... for the registry
+
+Ask developer AI
+
+Login to https://registry.terraform.io/publish/provider/github/thiskevinwang
+
+Visit https://developer.hashicorp.com/terraform/registry/providers/publishing
