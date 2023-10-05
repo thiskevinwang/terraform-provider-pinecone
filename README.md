@@ -4,11 +4,11 @@
 
 ```hcl
 terraform {
-	required_providers {
-		pinecone = {
-			source ="thekevinwang.com/terraform-providers/pinecone"
-		}
-	}
+  required_providers {
+    pinecone = {
+      source ="thekevinwang.com/terraform-providers/pinecone"
+    }
+  }
 }
 
 provider "pinecone" {}

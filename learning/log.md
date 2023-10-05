@@ -255,3 +255,7 @@ Started working on tests and new-to-me golang module/import/testing isms
 https://github.com/hashicorp/terraform-plugin-testing/issues/185
 
 10-05-2023 12:52pm Got a basic CREATE-DESTROY acceptance test working
+
+10-05-2023 12:58pm Merged: https://github.com/thiskevinwang/terraform-provider-pinecone/pull/2
+
+Continue on to implement a `pinecone_collection` data-source
