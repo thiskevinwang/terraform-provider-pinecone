@@ -132,7 +132,11 @@ func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, 
 	metric := plan.Metric.ValueString()
 
 	// Create new index
-	response, err := r.client.CreateIndex(name, dimension, metric)
+	response, err := r.client.CreateIndex(services.CreateIndexBodyParams{
+		Name:      name,
+		Dimension: dimension,
+		Metric:    metric,
+	})
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to create index",
