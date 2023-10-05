@@ -3,12 +3,15 @@ package resources
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -32,28 +35,10 @@ type indexResource struct {
 	client services.Pinecone
 }
 
-// {
-//   "database": {
-//     "name": "test",
-//     "metric": "cosine",
-//     "dimension": 1536,
-//     "replicas": 1,
-//     "shards": 1,
-//     "pods": 1
-//   },
-//   "status": {
-//     "waiting": [],
-//     "crashed": [],
-//     "host": "test-260030d.svc.us-west4-gcp-free.pinecone.io",
-//     "port": 433,
-//     "state": "Ready",
-//     "ready": true
-//   }
-// }
-
 // indexResourceModel maps the resource schema data.
 // - "github.com/hashicorp/terraform-plugin-framework/types"
 type indexResourceModel struct {
+	Id        types.String `tfsdk:"id"` // for TF
 	Name      types.String `tfsdk:"name"`
 	Dimension types.Int64  `tfsdk:"dimension"`
 	Metric    types.String `tfsdk:"metric"`
@@ -72,6 +57,13 @@ func (r *indexResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	resp.Schema = schema.Schema{
 		Description: "Manages an index.",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Service generated identifier.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"name": schema.StringAttribute{
 				Description: "The name of the index to be created. The maximum length is 45 characters.",
 				Required:    true,
@@ -125,11 +117,11 @@ func (r *indexResource) Configure(_ context.Context, req resource.ConfigureReque
 
 // Create a new resource.
 func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Error(ctx, "creating a resource")
 	var plan indexResourceModel
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -148,25 +140,50 @@ func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
+	// poll the describe index endpoint until the index is ready
+	// Poll every n seconds
+	ticker := time.NewTicker(10 * time.Second)
+	shouldRetry := true
+	for shouldRetry {
+		diRes, err := r.client.DescribeIndex(name)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Failed to poll index",
+				fmt.Sprintf("Failed to describe index: %s", err),
+			)
+			return
+		}
+
+		if diRes.Status.State == "Ready" || diRes.Status.Ready {
+			shouldRetry = false
+		} else {
+			<-ticker.C // keep polling
+		}
+	}
 
 	// log the response
 	tflog.Info(ctx, "CreateIndex OK: %s", map[string]any{"response": *response})
 
+	plan.Id = types.StringValue(fmt.Sprintf("%s/%s", r.client.Environment, name))
+
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	diags = resp.State.Set(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Read resource information.
 func (r *indexResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Get current state
 	// Read data from Terraform state
-	var plan indexResourceModel
-	resp.Diagnostics.Append(resp.State.Get(ctx, &plan)...)
+	var state indexResourceModel
+	resp.Diagnostics.Append(resp.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Get fresh state from Pinecone
 	// Generate API request body from plan
-	name := plan.Name.ValueString()
+	name := state.Name.ValueString()
 	response, err := r.client.DescribeIndex(name)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -177,54 +194,75 @@ func (r *indexResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	// log the response
-	tflog.Info(ctx, "DescribeIndex OK: %s", map[string]any{"response": *response})
+	tflog.Info(ctx, "DescribeIndex OK", map[string]any{"response": *response})
 
-	// Save data into Terraform plan
+	// Set refreshed state
+	state.Name = types.StringValue(response.Database.Name)
+	state.Dimension = types.Int64Value(response.Database.Dimension)
+	state.Metric = types.StringValue(response.Database.Metric)
+	state.Replicas = types.Int64Value(response.Database.Replicas)
+	state.Pods = types.Int64Value(response.Database.Pods)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update resource information.
+func (r *indexResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan indexResourceModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	indexName := plan.Name.ValueString()
+
+	confIdxResp, err := r.client.ConfigureIndex(indexName, &services.ConfigureIndexRequest{})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to update index",
+			fmt.Sprintf("Failed to update index: %s", err),
+		)
+		return
+	}
+
+	// log the response
+	tflog.Info(ctx, "ConfigureIndex OK", map[string]any{"response": *confIdxResp})
+
+	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *indexResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data indexResourceModel
+// Delete resource information.
+func (r *indexResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state indexResourceModel
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update example, got error: %s", err))
-	//     return
-	// }
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *indexResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data indexResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
+	delIdxResp, err := r.client.DeleteIndex(state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to delete index",
+			fmt.Sprintf("Failed to delete index: %s", err),
+		)
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := r.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete example, got error: %s", err))
-	//     return
-	// }
+	// log the response
+	tflog.Info(ctx, "DeleteIndex OK", map[string]any{"response": *delIdxResp})
+
 }
 
 func (r *indexResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	tflog.Info(ctx, "Import state", map[string]any{"ID": req.ID})
 	// Retrieve import ID and save to id attribute
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

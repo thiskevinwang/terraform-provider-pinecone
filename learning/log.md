@@ -234,3 +234,17 @@ Now..
 APPLY WORKS
 
 10-04-2023 5:43pm-7:23pm (stop; +1.5hr; total elapsed 5h)
+
+10-04-2023 10pm (start)
+
+Do more docs reading
+
+implement more service methods. Pinecone API docs so good.
+
+Do some whimsical diagramming ... it helps alot
+
+10-04-2023 10pm-12:30am (stop; +2.5hr; total elapsed 7.5h)
+
+Implemented update and destroy.
+
+Next: unit tests?
