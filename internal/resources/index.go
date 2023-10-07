@@ -49,12 +49,16 @@ type indexResourceModel struct {
 }
 
 // Metadata returns the resource type name.
-func (r *indexResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *indexResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	tflog.Debug(ctx, "indexResource.Metadata", map[string]any{"req": req, "resp": resp})
+
 	resp.TypeName = req.ProviderTypeName + "_index"
 }
 
 // Schema defines the schema for the resource.
-func (r *indexResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *indexResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	tflog.Debug(ctx, "indexResource.Schema", map[string]any{"req": req, "resp": resp})
+
 	resp.Schema = schema.Schema{
 		Description: "Manages an index.",
 		Attributes: map[string]schema.Attribute{
@@ -100,7 +104,8 @@ func (r *indexResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 }
 
 // Configure adds the provider configured client to the resource.
-func (r *indexResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *indexResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	tflog.Debug(ctx, "indexResource.Configure", map[string]any{"req": req, "resp": resp})
 	if req.ProviderData == nil {
 		return
 	}
@@ -122,6 +127,7 @@ func (r *indexResource) Configure(_ context.Context, req resource.ConfigureReque
 
 // Create a new resource.
 func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Debug(ctx, "indexResource.Create", map[string]any{"req": req, "resp": resp})
 	var plan indexResourceModel
 
 	// Read Terraform plan data into the model
@@ -185,6 +191,8 @@ func (r *indexResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 // Read resource information.
 func (r *indexResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Debug(ctx, "indexResource.Read", map[string]any{"req": req, "resp": resp})
+
 	// Get current state
 	// Read data from Terraform state
 	var state indexResourceModel
@@ -200,7 +208,7 @@ func (r *indexResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to describe index",
-			fmt.Sprintf("Failed to describe index: %s", err),
+			err.Error(),
 		)
 		return
 	}
@@ -220,6 +228,8 @@ func (r *indexResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 // Update resource information.
 func (r *indexResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Debug(ctx, "indexResource.Update", map[string]any{"req": req, "resp": resp})
+
 	var plan indexResourceModel
 
 	// Read Terraform plan data into the model
@@ -249,6 +259,8 @@ func (r *indexResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 // Delete resource information.
 func (r *indexResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Debug(ctx, "indexResource.Delete", map[string]any{"req": req, "resp": resp})
+
 	var state indexResourceModel
 
 	// Read Terraform plan data into the model
@@ -274,7 +286,37 @@ func (r *indexResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 }
 
 func (r *indexResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "Import state", map[string]any{"ID": req.ID})
+	tflog.Debug(ctx, "indexResource.ImportState", map[string]any{"req": req, "resp": resp})
+
+	// fetch a fresh index from pinecone
+	// req.ID appears to be our only way to get the index name
+	indexName := req.ID
+	// note that what gets fetched from pinecone, based on purely
+	// the index name, may differ from the rest of whatever is
+	// specified in the resource stanza in HCL
+
+	// Get fresh state from Pinecone
+	response, err := r.client.DescribeIndex(indexName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to describe index",
+			err.Error(),
+		)
+		return
+	}
+
+	// TODO(kevinwang) wait for the index to be in a ready state
+	state := indexResourceModel{}
+	state.Dimension = types.Int64Value(response.Database.Dimension)
+	state.Metric = types.StringValue(response.Database.Metric)
+	state.Replicas = types.Int64Value(response.Database.Replicas)
+	state.Pods = types.Int64Value(response.Database.Pods)
+	state.Name = types.StringValue(response.Database.Name)
+
+	// Save data into Terraform state
+	diags := resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+
 	// Retrieve import ID and save to id attribute
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
