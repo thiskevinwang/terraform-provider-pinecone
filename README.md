@@ -50,6 +50,18 @@ Use the following steps to proceed.
 3. Run `goreleaser`: `GITHUB_TOKEN=$(gh auth token) goreleaser release --clean`
    - This will create a new GitHub release which should be detected by the Terraform registry shortly after.
 
+> [!NOTE]
+>
+> The goreleaser config requires `GPG_FINGERPRINT` to be set. Maybe try the following (needs to be tested)
+>
+> ```bash
+> export GPG_FINGERPRINT=$(gpg --list-keys --with-colons | awk -F: '$1 == "fpr" || $1 == "fp2" {print $10}' | head -n 1)
+> export GITHUB_TOKEN=$(gh auth token)
+> goreleaser release --clean
+> ```
+>
+> - Ref: https://unix.stackexchange.com/a/743986
+
 ## Appendix
 
 - https://thekevinwang.com/2023/10/05/build-publish-terraform-provider
