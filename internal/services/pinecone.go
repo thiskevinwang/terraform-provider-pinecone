@@ -291,6 +291,9 @@ type DescribeIndexResponse struct {
 // https://controller.{environment}.pinecone.io/databases/{indexName}
 // Get a description of an index.
 func (p *Pinecone) DescribeIndex(name string) (*DescribeIndexResponse, error) {
+	if name == "" {
+		return nil, fmt.Errorf("DescribeIndex failed: name argument was not specified")
+	}
 	url := fmt.Sprintf(baseUrl+"/databases/%s", p.Environment, name)
 
 	// initialize a request

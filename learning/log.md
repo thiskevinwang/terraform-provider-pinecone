@@ -272,3 +272,11 @@ Login to https://registry.terraform.io/publish/provider/github/thiskevinwang
 Visit https://developer.hashicorp.com/terraform/registry/providers/publishing
 
 10-05-2023 2:35pm Publishing...
+
+10-07-2023 12:41am Logging
+
+Regexp to grok `.jsonl` file
+
+`"indexResource.[a-z]+".+tf_rpc`
+
+`TF_LOG=json TF_LOG_PROVIDER=info TF_LOG_PATH=logs.jsonl terraform apply`
